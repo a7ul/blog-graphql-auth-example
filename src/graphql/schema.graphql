@@ -1,0 +1,33 @@
+directive @auth(permissions: [String!]) on FIELD_DEFINITION
+
+type Query {
+  # Should only be accessible by employees with read access to customer data
+  customers: [Customer] @auth(permissions: ["customer:read"])
+
+  # Should only be accessible only to the currently logged in customer
+  me: Customer @auth(permissions: ["self:customer"])
+}
+
+type Mutation {
+  # Should be accessible to all users
+  login(username: String!): AccessToken!
+
+  # Should only be accessible by employees with write access to customer data
+  updateCustomer(customerId: ID!, name: String): Customer
+    @auth(permissions: ["customer:write"])
+
+  # Should only be accessible to an employee with higher privileges
+  updateEmployeeRole(employeeId: ID!, role: String): Boolean
+    @auth(permissions: ["iam:write"])
+}
+
+type AccessToken {
+  token: String
+}
+
+type Customer {
+  id: ID
+  username: String
+  name: String
+  internalNote: String @auth(permissions: ["notes:read"])
+}

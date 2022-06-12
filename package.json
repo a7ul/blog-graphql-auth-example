@@ -1,0 +1,19 @@
+{
+  "name": "blog-graphql-auth-example",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Atul R <atulanand94@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@graphql-tools/schema": "^8.3.14",
+    "@graphql-tools/utils": "^8.6.13",
+    "apollo-server-express": "^3.8.2",
+    "express": "^4.18.1",
+    "express-jwt": "^7.7.5",
+    "graphql": "^16.5.0"
+  }
+}
