@@ -3,7 +3,7 @@ import { mapSchema, getDirective, MapperKind } from "@graphql-tools/utils";
 import { RolePermissions } from "./roles.js";
 import { defaultFieldResolver } from "graphql";
 
-function isAuthorized(fieldPermissions, user) {
+function isAuthorized(fieldPermissions, typePermissions, user) {
   const userRoles = user?.roles ?? [];
   const userPermissions = new Set();
   // 1. Expand user roles to permissions
@@ -18,25 +18,55 @@ function isAuthorized(fieldPermissions, user) {
       return true;
     }
   }
+
+  // 3. if there are no field permissions then check if the type has permissions
+  if (fieldPermissions.length === 0) {
+    for (const typePermission of typePermissions) {
+      if (userPermissions.has(typePermission)) {
+        return true;
+      }
+    }
+  }
   return false;
 }
 
+function gatherTypePermissions(schema) {
+  // 1. Create a map to store a type and its permissions
+  const typePermissionMapping = new Map();
+  mapSchema(schema, {
+    // 2. Executes once for each type definition in the schema
+    [MapperKind.OBJECT_TYPE]: (typeConfig) => {
+      const typeAuthDirective = getDirective(schema, typeConfig, "auth")?.[0];
+      const typeLevelPermissions = typeAuthDirective?.permissions ?? [];
+      // 3. Collect permissions for each type
+      typePermissionMapping.set(typeConfig.name, typeLevelPermissions);
+      return typeConfig;
+    },
+  });
+  return typePermissionMapping;
+}
+
 export function getAuthorizedSchema(schema) {
+  const typePermissionMapping = gatherTypePermissions(schema);
+
   const authorizedSchema = mapSchema(schema, {
     // Executes once for each object field definition in the schema
-    [MapperKind.OBJECT_FIELD]: (fieldConfig) => {
+    [MapperKind.OBJECT_FIELD]: (fieldConfig, fieldName, typeName) => {
       // 1. Try to get the @auth directive config on the field
       const fieldAuthDirective = getDirective(schema, fieldConfig, "auth")?.[0];
+      // 1.1 Get the permissions for the field
+      const fieldPermissions = fieldAuthDirective?.permissions ?? [];
+      // 1.1 Get the permissions for the field's type
+      const typePermissions = typePermissionMapping.get(typeName) ?? [];
 
       // 2. If a @auth directive is found, replace the field's resolver with a custom resolver
-      if (fieldAuthDirective) {
+      if (fieldPermissions.length > 0 || typePermissions.length > 0) {
         // 2.1. Get the original resolver on the field
         const originalResolver = fieldConfig.resolve ?? defaultFieldResolver;
         // 2.2. Replace the field's resolver with a custom resolver
         fieldConfig.resolve = (source, args, context, info) => {
           const user = context.user;
-          const fieldPermissions = fieldAuthDirective.permissions;
-          if (!isAuthorized(fieldPermissions, user)) {
+          if (!isAuthorized(fieldPermissions, typePermissions, user)) {
             // 2.3 If the user doesn't have the required permissions, throw an error
             throw new ForbiddenError("Unauthorized");
           }

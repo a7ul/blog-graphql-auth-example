@@ -1,4 +1,4 @@
-directive @auth(permissions: [String!]) on FIELD_DEFINITION
+directive @auth(permissions: [String!]) on FIELD_DEFINITION | OBJECT
 
 type Query {
   # Should only be accessible by employees with read access to customer data
@@ -25,7 +25,7 @@ type Mutation {
     @auth(permissions: ["iam:write"])
 }
 
-type Invoice {
+type Invoice @auth(permissions: ["invoice:read"]) {
   id: ID!
   customerId: ID!
   amount: Float!
