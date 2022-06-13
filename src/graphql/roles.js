@@ -14,6 +14,9 @@ export const RolePermissions = {
   "roles-editor": {
     permissions: ["iam:write"],
   },
+  "invoice-manager": {
+    permissions: ["invoice:read", "invoice:write"],
+  },
   "profile-service": {
     permissions: ["customer:read"],
   },

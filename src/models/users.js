@@ -19,7 +19,7 @@ export const Users = [
     id: 2,
     username: "wasp",
     name: "Janet van Dyne",
-    roles: ["employee"],
+    roles: ["employee", "invoice-manager"],
     type: "employee",
   },
   {
