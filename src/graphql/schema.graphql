@@ -6,6 +6,10 @@ type Query {
 
   # Should only be accessible only to the currently logged in customer
   me: Customer @auth(permissions: ["self:customer"])
+
+  # Should only be accessible by employees with read access to invoice data
+  getCustomerInvoices(customerId: ID!): [Invoice]
+    @auth(permissions: ["invoice:read"])
 }
 
 type Mutation {
@@ -21,13 +25,20 @@ type Mutation {
     @auth(permissions: ["iam:write"])
 }
 
-type AccessToken {
-  token: String
+type Invoice {
+  id: ID!
+  customerId: ID!
+  amount: Float!
 }
 
 type Customer {
   id: ID
   username: String
   name: String
+  invoices: [Invoice]
   internalNote: String @auth(permissions: ["notes:read"])
+}
+
+type AccessToken {
+  token: String
 }

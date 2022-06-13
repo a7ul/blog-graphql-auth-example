@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { UserInputError } from "apollo-server-express";
 import { Users } from "../models/users.js";
 import { JWT_SECRET } from "../config.js";
+import { Invoices } from "../models/invoices.js";
 
 export const resolvers = {
   Mutation: {
@@ -44,6 +45,21 @@ export const resolvers = {
     },
     customers: () => {
       return Users.filter((user) => user.type === "customer");
+    },
+    getCustomerInvoices(root, args) {
+      const customerId = args.customerId;
+      const invoices = Invoices.filter(
+        (invoice) => invoice.customerId === customerId
+      );
+      return invoices;
+    },
+  },
+  Customer: {
+    invoices: (customer) => {
+      const invoices = Invoices.filter(
+        (invoice) => invoice.customerId === customer.id
+      );
+      return invoices;
     },
   },
 };
