@@ -1,6 +1,9 @@
 directive @auth(permissions: [String!]) on FIELD_DEFINITION | OBJECT
 
 type Query {
+  # Public health endpoint
+  health: String
+
   # Should only be accessible by employees with read access to customer data
   customers: [Customer] @auth(permissions: ["customer:read"])
 

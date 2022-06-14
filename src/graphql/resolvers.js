@@ -39,6 +39,7 @@ export const resolvers = {
     },
   },
   Query: {
+    health: () => "OK",
     me: (root, args, context) => {
       const id = context.user.id;
       return Users.find((user) => user.id === id && user.type === "customer");
