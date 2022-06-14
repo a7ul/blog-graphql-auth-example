@@ -2,8 +2,7 @@ directive @auth(permissions: [String!]) on FIELD_DEFINITION | OBJECT
 
 type Query {
   # Public health endpoint
-  health: String
-
+  health: String @auth(permissions: ["self:anyone"])
   # Should only be accessible by employees with read access to customer data
   customers: [Customer] @auth(permissions: ["customer:read"])
 
@@ -17,7 +16,7 @@ type Query {
 
 type Mutation {
   # Should be accessible to all users
-  login(username: String!): AccessToken!
+  login(username: String!): AccessToken! @auth(permissions: ["self:anyone"])
 
   # Should only be accessible by employees with write access to customer data
   updateCustomer(customerId: ID!, name: String): Customer
@@ -34,7 +33,7 @@ type Invoice @auth(permissions: ["invoice:read"]) {
   amount: Float!
 }
 
-type Customer {
+type Customer @auth(permissions: ["customer:read", "self:customer"]) {
   id: ID
   username: String
   name: String
@@ -42,6 +41,6 @@ type Customer {
   internalNote: String @auth(permissions: ["notes:read"])
 }
 
-type AccessToken {
+type AccessToken @auth(permissions: ["self:anyone"]) {
   token: String
 }

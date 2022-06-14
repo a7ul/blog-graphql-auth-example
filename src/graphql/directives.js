@@ -5,7 +5,8 @@ import { defaultFieldResolver } from "graphql";
 
 function isAuthorized(fieldPermissions, typePermissions, user) {
   const userRoles = user?.roles ?? [];
-  const userPermissions = new Set();
+  // Add self:anyone to user permissions by default
+  const userPermissions = new Set(["self:anyone"]);
   // 1. Expand user roles to permissions
   userRoles.forEach((roleKey) => {
     const role = RolePermissions[roleKey] ?? RolePermissions.anonymous;
@@ -46,6 +47,21 @@ function gatherTypePermissions(schema) {
   return typePermissionMapping;
 }
 
+function shouldDenyFieldByDefault(
+  fieldPermissions,
+  typePermissions,
+  fieldName,
+  typeName
+) {
+  if (fieldName.startsWith("_") || typeName.startsWith("_")) {
+    // Apollo's internal fields / types start with _
+    return false;
+  }
+  const hasNoPermissions =
+    fieldPermissions.length === 0 && typePermissions.length === 0;
+  return hasNoPermissions;
+}
+
 export function getAuthorizedSchema(schema) {
   const typePermissionMapping = gatherTypePermissions(schema);
 
@@ -56,8 +72,27 @@ export function getAuthorizedSchema(schema) {
       const fieldAuthDirective = getDirective(schema, fieldConfig, "auth")?.[0];
       // 1.1 Get the permissions for the field
       const fieldPermissions = fieldAuthDirective?.permissions ?? [];
-      // 1.1 Get the permissions for the field's type
+      // 1.2 Get the permissions for the field's type
       const typePermissions = typePermissionMapping.get(typeName) ?? [];
+
+      // 1.3 Check if field should be denied by default
+      if (
+        shouldDenyFieldByDefault(
+          fieldPermissions,
+          typePermissions,
+          fieldName,
+          typeName
+        )
+      ) {
+        // Replace, the resolver with a ForbiddenError throwing function.
+        // Optionally log here so it shows up while the server starts
+        fieldConfig.resolve = () => {
+          throw new ForbiddenError(
+            `No access control specified for ${typeName}.${fieldName}. Deny by default`
+          );
+        };
+        return fieldConfig;
+      }
 
       // 2. If a @auth directive is found, replace the field's resolver with a custom resolver
       if (fieldPermissions.length > 0 || typePermissions.length > 0) {
